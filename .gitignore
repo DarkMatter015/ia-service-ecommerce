@@ -1,0 +1,22 @@
+# Ambientes Virtuais
+venv/
+env/
+*.egg-info
+
+# Cache e Bytecode
+__pycache__
+*.pyc
+*.pyo
+
+# Dependências e Build
+*.dist-info/
+build/
+dist/
+*.egg
+
+# Logs e Dados
+*.log
+*.tmp
+
+# Configurações/Segurança
+.env
