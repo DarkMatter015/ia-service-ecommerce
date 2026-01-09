@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+
 from app.api.deps import get_db
 from app.models.product import ProductEmbedding
+from app.repositories.product import ProductRepository
 from app.services.llm_factory import get_embeddings
 
 router = APIRouter()
@@ -14,23 +15,10 @@ def sync_products(db: Session = Depends(get_db)):
     Lê produtos da tabela original (Java) e gera vetores na tabela de IA.
     ATENÇÃO: Este é um script simples. Em produção, use filas (RabbitMQ).
     """
+    repo = ProductRepository(db)
     try:
-        # 1. Buscar produtos na tabela original (tb_product)
-        stmt = text("""
-            SELECT 
-                p.id, 
-                p.name, 
-                p.description, 
-                p.price, 
-                p.quantity_available_in_stock, 
-                p.category_id, 
-                p.deleted_at,
-                c.name as category_name
-            FROM tb_product p
-            LEFT JOIN tb_category c ON p.category_id = c.id
-        """)
-        result = db.execute(stmt)
-        products = result.mappings().all()
+        # 1. Buscar produtos na tabela original (tb_product) via Repositório
+        products = repo.get_products_for_sync()
 
         if not products:
             return {"message": "Nenhum produto encontrado na tabela tb_product."}
@@ -40,12 +28,10 @@ def sync_products(db: Session = Depends(get_db)):
 
         for prod in products:
             # 2. Verificar se já existe vetor para esse produto (evitar duplicação)
-            exists = db.query(ProductEmbedding).filter_by(product_id=prod["id"]).first()
-            if exists:
+            if repo.exists_by_product_id(prod["id"]):
                 continue
 
             # 3. Criar o texto rico para vetorização
-            # Juntamos tudo para a IA entender o contexto global do produto
             cat_name = (
                 prod["category_name"] if prod["category_name"] else "Sem Categoria"
             )
@@ -64,8 +50,13 @@ def sync_products(db: Session = Depends(get_db)):
                 product_id=prod["id"],
                 embedding=vector,
                 content=content_text,
-                metadata_={"price": float(prod["price"]), "category": cat_name},
+                metadata_={
+                    "price": float(prod["price"]), 
+                    "category": cat_name,
+                    "stock": int(prod["quantity_available_in_stock"]),
+                },
             )
+            # Usando db session direto para batch (ou poderíamos adicionar métodos de batch ao repo)
             db.add(new_embedding)
             count += 1
 

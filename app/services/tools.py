@@ -1,0 +1,158 @@
+from typing import Dict
+
+import httpx
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.repositories.product import ProductRepository
+from app.services.llm_factory import get_embeddings
+
+
+class EcommerceTools:
+    def __init__(self, db: Session):
+        self.db = db
+        self.embeddings = get_embeddings()
+        self.repo = ProductRepository(db)
+
+    # Analytics (Ranking, Count, Avg)
+    def product_analytics(
+        self,
+        intent: str,
+        category: str = None,
+        order_by: str = None,
+        limit: int = 5,
+    ):
+        """
+        Executa análises quantitativas no banco de dados.
+
+        intent: 'count' (quantidade), 'average_price' (média), 'ranking' (top X).
+        category: Filtro opcional de categoria.
+        order_by: Para ranking ('price_desc', 'price_asc', 'stock_desc').
+        """
+        try:
+            try:
+                limit_val = int(limit) if limit else 5
+            except ValueError:
+                limit_val = 5
+
+            if intent == "count":
+                # Ex: "Quantos produtos tem na categoria X?"
+                total = (
+                    self.repo.count_by_category(category)
+                    if category
+                    else self.repo.count_all()
+                )
+                return f"Total encontrado: {total} produtos."
+
+            elif intent == "average_price":
+                # Ex: "Qual a média de preço das guitarras?"
+                avg = self.repo.get_average_price(category)
+                val = round(avg, 2) if avg else 0
+                return f"O preço médio é R$ {val}."
+
+            elif intent == "ranking":
+                # Ex: "Quais as 3 guitarras mais caras?"
+                # Mapeia os intents da IA para campos do banco
+                field = "price"
+                direction = "desc"
+
+                if order_by == "price_asc":
+                    direction = "asc"
+                elif order_by == "stock_desc":
+                    field = "stock"
+
+                # Chama o Repo
+                results = self.repo.list_products(
+                    category=category,
+                    order_by_field=field,
+                    order_direction=direction,
+                    limit=limit_val,
+                )
+
+                if not results:
+                    return "Nenhum produto encontrado para este ranking."
+
+                # Formata a resposta
+                return "\n".join(
+                    [
+                        f"{i + 1}º: {p.content.split('. ')[0]} | R$ {p.metadata_['price']} | Estoque: {p.metadata_['stock']}"
+                        for i, p in enumerate(results)
+                    ]
+                )
+
+            return "Não entendi o tipo de análise solicitada."
+
+        except Exception as e:
+            return f"Erro ao executar análise: {str(e)}"
+
+    # Busca Híbrida (Texto + Vetor)
+    def search_catalog_tool(self, query: str):
+        """A mesma lógica que você já tinha no RAGService"""
+        results = self.hybrid_search(query)
+
+        if not results:
+            return "Nenhum produto relevante encontrado."
+
+        return "\n\n".join(
+            [f"Produto: {p.content} (Preço/Info: {p.metadata_})" for p in results]
+        )
+
+    def hybrid_search(self, query: str, limit: int = 5):
+        """
+        Executa busca híbrida usando RRF (Reciprocal Rank Fusion).
+        """
+        scores = {}
+
+        # Busca Vetorial (Semântica)
+        query_vector = get_embeddings().embed_query(query)
+        vector_results = self.repo.search_by_vector(query_vector, limit * 2)
+
+        # Busca Keyword (Full-Text Search)
+        keyword_results = self.repo.search_by_keyword(query, limit * 2)
+
+        # Fusão RRF (Reciprocal Rank Fusion)
+        product_map = {p.id: p for p in vector_results + keyword_results}
+
+        # Calcula scores
+        self.calculate_rrf_score(vector_results, scores)
+        self.calculate_rrf_score(keyword_results, scores)
+
+        # Ordenar pelo score final (Decrescente)
+        sorted_ids = sorted(scores, key=scores.get, reverse=True)[:limit]
+        return [product_map[pid] for pid in sorted_ids]
+
+    def calculate_rrf_score(self, results, scores, k=60) -> Dict[int, float]:
+        """
+        Calcula o score final usando RRF (Reciprocal Rank Fusion).
+        k: Constante de suavização (geralmente 60).
+        """
+        for rank, prod in enumerate(results):
+            if prod.id not in scores:
+                scores[prod.id] = 0
+            scores[prod.id] += 1 / (k + rank + 1)
+
+        return scores
+
+    # Pedidos (Async)
+    async def fetch_order_from_java(order_id: str, user_token: str):
+        """Consulta a API Java para pegar dados do pedido"""
+        url = f"{settings.BACKEND_URL}/orders/ai/{order_id}"
+        headers = {"Authorization": user_token} if user_token else {}
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(url, headers=headers, timeout=5.0)
+                if response.status_code == 200:
+                    return response.json()
+                elif response.status_code == 401 or response.status_code == 403:
+                    return {
+                        "error": "Acesso negado. Você não tem permissão para ver este pedido."
+                    }
+                elif response.status_code == 404:
+                    return {"error": "Pedido não encontrado."}
+                else:
+                    return {
+                        "error": f"Erro no sistema de pedidos: {response.status_code}"
+                    }
+            except Exception as e:
+                return {"error": f"Falha ao conectar no sistema de pedidos: {str(e)}"}

@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, JSON, TIMESTAMP, text, BIGINT
 from sqlalchemy.dialects.postgresql import UUID
 from pgvector.sqlalchemy import Vector
 from app.core.database import Base
+from sqlalchemy.dialects.postgresql import TSVECTOR
 
 class ProductEmbedding(Base):
     __tablename__ = "product_embeddings"
@@ -12,3 +13,4 @@ class ProductEmbedding(Base):
     content = Column(String)
     metadata_ = Column("metadata", JSON)
     created_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
+    search_vector = Column(TSVECTOR)
