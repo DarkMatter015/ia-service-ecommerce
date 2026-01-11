@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str
     GOOGLE_API_KEY: str
 
+    # BACKEND
+    BACKEND_URL: str = "http://localhost:8080"
+
     class Config:
         env_file = ".env"
 
