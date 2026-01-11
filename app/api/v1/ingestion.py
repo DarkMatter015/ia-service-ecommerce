@@ -28,32 +28,27 @@ def sync_products(db: Session = Depends(get_db)):
 
         for prod in products:
             # 2. Verificar se já existe vetor para esse produto (evitar duplicação)
-            if repo.exists_by_product_id(prod["id"]):
+            if repo.exists_by_product_id(prod['id']):
                 continue
 
             # 3. Criar o texto rico para vetorização
             cat_name = (
-                prod["category_name"] if prod["category_name"] else "Sem Categoria"
+                prod['category_name'] if prod['category_name'] else "Sem Categoria"
             )
-            content_text = f"""Produto: {prod["name"]}. 
-            Categoria: {cat_name}. 
-            Descrição: {prod["description"]}. 
-            Preço: R$ {prod["price"]}.
-            Quantidade em estoque: {prod["quantity_available_in_stock"]}.
-            """
+            content_text = f"Produto: {prod['name']}. Descrição: {prod['description']}"
 
             # 4. Gerar Vetor (Chamada API Google)
             vector = embeddings_model.embed_query(content_text)
 
             # 5. Salvar no Banco
             new_embedding = ProductEmbedding(
-                product_id=prod["id"],
+                product_id=prod['id'],
                 embedding=vector,
                 content=content_text,
                 metadata_={
-                    "price": float(prod["price"]), 
+                    "price": float(prod['price']),
                     "category": cat_name,
-                    "stock": int(prod["quantity_available_in_stock"]),
+                    "stock": int(prod['quantity_available_in_stock']),
                 },
             )
             # Usando db session direto para batch (ou poderíamos adicionar métodos de batch ao repo)

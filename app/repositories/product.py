@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 
-from sqlalchemy import func, select, text
+from sqlalchemy import select, func, text, cast, Numeric, Text
 from sqlalchemy.orm import Session
 
 from app.models.product import ProductEmbedding
@@ -43,7 +43,7 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
 
     # --- Métodos de Busca Híbrida ---
     def search_by_vector(
-        self, query_vector: List[float], limit: int = 4
+        self, query_vector: List[float], limit: int
     ) -> List[ProductEmbedding]:
         """
         Searches for products using vector similarity.
@@ -56,7 +56,7 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
 
         return self.db.execute(stmt).scalars().all()
 
-    def search_by_keyword(self, query: str, limit: int = 4) -> List[ProductEmbedding]:
+    def search_by_keyword(self, query: str, limit: int) -> List[ProductEmbedding]:
         """
         Searches for products using keyword matching.
         """
@@ -71,11 +71,10 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
 
     # --- Métodos de Analytics (Ranking/Count) ---
     def average_price(self, category: str = None):
-        query = select(func.avg(text("(metadata->>'price')::numeric")))
+        price_field = cast(self.model.metadata_['price'].cast(Text), Numeric)
+        query = select(func.avg(price_field))
         if category:
-            query = query.filter(text("metadata->>'category' ILIKE :cat")).params(
-                cat=f"%{category}%"
-            )
+            query = query.filter(self.model.metadata_['category'].cast(Text).ilike(f"%{category}%"))
         return self.db.execute(query).scalar()
 
     def count_by_category(self, category: str) -> int:
@@ -92,7 +91,7 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
         order_direction: str = "asc",
         limit: int = 5,
     ):
-        query = self.base_query()
+        query = self.db.query(self.model)
 
         # Filtro
         if category:
@@ -109,4 +108,4 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
                 text(f"(metadata->>'{order_by_field}')::{cast_type} {direction}")
             )
 
-        return self.db.execute(query.limit(limit)).scalars().all()
+        return query.limit(limit).all()

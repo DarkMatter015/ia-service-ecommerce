@@ -1,5 +1,3 @@
-from typing import Dict
-
 import httpx
 from sqlalchemy.orm import Session
 
@@ -20,7 +18,7 @@ class EcommerceTools:
         intent: str,
         category: str = None,
         order_by: str = None,
-        limit: int = 5,
+        limit: str = "5",
     ):
         """
         Executa análises quantitativas no banco de dados.
@@ -30,64 +28,56 @@ class EcommerceTools:
         order_by: Para ranking ('price_desc', 'price_asc', 'stock_desc').
         """
         try:
-            try:
-                limit_val = int(limit) if limit else 5
-            except ValueError:
-                limit_val = 5
+            limit_val = int(limit)
+        except ValueError:
+            limit_val = 5
 
-            if intent == "count":
-                # Ex: "Quantos produtos tem na categoria X?"
-                total = (
-                    self.repo.count_by_category(category)
-                    if category
-                    else self.repo.count_all()
-                )
-                return f"Total encontrado: {total} produtos."
+        if intent == "count":
+            # Ex: "Quantos produtos tem na categoria X?"
+            total = (
+                self.repo.count_by_category(category) if category else self.repo.count()
+            )
+            return f"Total encontrado: {total} produtos."
 
-            elif intent == "average_price":
-                # Ex: "Qual a média de preço das guitarras?"
-                avg = self.repo.get_average_price(category)
-                val = round(avg, 2) if avg else 0
-                return f"O preço médio é R$ {val}."
+        elif intent == "average_price":
+            # Ex: "Qual a média de preço das guitarras?"
+            avg = self.repo.average_price(category)
+            val = round(avg, 2) if avg else 0
+            return f"O preço médio {'da categoria ' + category if category else 'geral'} é R$ {val}."
 
-            elif intent == "ranking":
-                # Ex: "Quais as 3 guitarras mais caras?"
-                # Mapeia os intents da IA para campos do banco
-                field = "price"
-                direction = "desc"
+        elif intent == "ranking":
+            # Ex: "Quais as 3 guitarras mais caras?"
+            field = "price"
+            direction = "desc"
 
-                if order_by == "price_asc":
-                    direction = "asc"
-                elif order_by == "stock_desc":
-                    field = "stock"
+            if order_by == "price_asc":
+                direction = "asc"
+            elif order_by == "stock_desc":
+                field = "stock"
 
-                # Chama o Repo
-                results = self.repo.list_products(
-                    category=category,
-                    order_by_field=field,
-                    order_direction=direction,
-                    limit=limit_val,
-                )
+            results = self.repo.list_products(
+                category=category,
+                order_by_field=field,
+                order_direction=direction,
+                limit=limit_val,
+            )
 
-                if not results:
-                    return "Nenhum produto encontrado para este ranking."
-
-                # Formata a resposta
-                return "\n".join(
-                    [
-                        f"{i + 1}º: {p.content.split('. ')[0]} | R$ {p.metadata_['price']} | Estoque: {p.metadata_['stock']}"
-                        for i, p in enumerate(results)
-                    ]
+            if not results:
+                return (
+                    "Nenhum produto encontrado no banco de dados com esses critérios."
                 )
 
-            return "Não entendi o tipo de análise solicitada."
+            return "\n".join(
+                [
+                    f"{i + 1}º: {p.content.split('. ')[0]} | R$ {p.metadata_['price']} | Estoque: {p.metadata_['stock']}"
+                    for i, p in enumerate(results)
+                ]
+            )
 
-        except Exception as e:
-            return f"Erro ao executar análise: {str(e)}"
+        return "Não entendi o tipo de análise solicitada."
 
     # Busca Híbrida (Texto + Vetor)
     def search_catalog_tool(self, query: str):
-        """A mesma lógica que você já tinha no RAGService"""
         results = self.hybrid_search(query)
 
         if not results:
@@ -121,20 +111,18 @@ class EcommerceTools:
         sorted_ids = sorted(scores, key=scores.get, reverse=True)[:limit]
         return [product_map[pid] for pid in sorted_ids]
 
-    def calculate_rrf_score(self, results, scores, k=60) -> Dict[int, float]:
+    def calculate_rrf_score(self, results, scores, k=60):
         """
         Calcula o score final usando RRF (Reciprocal Rank Fusion).
-        k: Constante de suavização (geralmente 60).
+        k: Constante de suavização.
         """
         for rank, prod in enumerate(results):
             if prod.id not in scores:
                 scores[prod.id] = 0
             scores[prod.id] += 1 / (k + rank + 1)
 
-        return scores
-
     # Pedidos (Async)
-    async def fetch_order_from_java(order_id: str, user_token: str):
+    async def fetch_order_from_java(self, order_id: str, user_token: str):
         """Consulta a API Java para pegar dados do pedido"""
         url = f"{settings.BACKEND_URL}/orders/ai/{order_id}"
         headers = {"Authorization": user_token} if user_token else {}

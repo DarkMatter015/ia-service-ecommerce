@@ -67,7 +67,7 @@ class AgentService:
                             },
                             "category": {
                                 "type": "string",
-                                "description": "A categoria para filtrar (opcional). Ex: 'Violões', 'Guitarras', 'Baterias', etc.",
+                                "description": "A categoria para filtrar. Ex: 'Violões', 'Guitarras', 'Baterias', 'Teclados', etc.",
                             },
                             "order_by": {
                                 "type": "string",
@@ -98,7 +98,7 @@ class AgentService:
                     "Se perguntarem de produtos, busque no catálogo. "
                     "Se perguntarem de pedidos, busque as informações do pedido. "
                     "Se perguntarem de análise de produtos, use as ferramentas de análise. "
-                    "Se for apenas um 'oi', responda educadamente sem usar ferramentas.",
+                    "Se for apenas um 'oi' ou algo que não tenha relação nenhuma com a RiffHouse, responda educadamente sem usar ferramentas.",
                 ),
                 ("user", "{input}"),
             ]
@@ -117,10 +117,9 @@ class AgentService:
             for tool_call in response_msg.tool_calls:
                 fn_name = tool_call["name"]
                 args = tool_call["args"]
+                content_result = ""
 
                 print(f"🤖 IA Decidiu usar: {fn_name} com args: {args}")
-
-                content_result = ""
 
                 # Roteamento manual
                 if fn_name == "search_catalog":
@@ -128,7 +127,8 @@ class AgentService:
 
                 elif fn_name == "check_order_status":
                     data = await self.tools.fetch_order_from_java(
-                        str(args["order_id"]), user_token=self.user_token
+                        order_id=str(args["order_id"]), 
+                        user_token=self.user_token
                     )
                     content_result = str(data)
 
@@ -137,13 +137,14 @@ class AgentService:
                         intent=args.get("intent"),
                         category=args.get("category"),
                         order_by=args.get("order_by"),
-                        limit=args.get("limit", 5),
+                        limit=args.get("limit", "5"),
                     )
 
                 # Cria a mensagem de resposta da ferramenta
                 tool_outputs.append(
                     ToolMessage(
-                        content=str(content_result), tool_call_id=tool_call["id"]
+                        content=str(content_result), 
+                        tool_call_id=tool_call["id"]
                     )
                 )
 
@@ -165,7 +166,7 @@ class AgentService:
             final_chain = final_prompt | self.llm
             final_response = final_chain.invoke({})
             return final_response.content
-
+        
         else:
             print("🤖 IA está response sem utilizar dados da RiffHouse")
             # Se a IA não chamou tools (ex: "Oi tudo bem?"), devolve a resposta direta
