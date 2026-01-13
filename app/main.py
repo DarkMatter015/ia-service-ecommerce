@@ -6,8 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(title=settings.PROJECT_NAME)
 
 origins = [
-    "http://localhost:5173", # Porta padrão do Vite
-    "http://localhost:8080", # porta do backend
+    "*"
 ]
 
 app.add_middleware(

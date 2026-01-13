@@ -1,5 +1,3 @@
-import json
-
 from langchain_core.messages import ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
 from sqlalchemy.orm import Session
@@ -127,8 +125,7 @@ class AgentService:
 
                 elif fn_name == "check_order_status":
                     data = await self.tools.fetch_order_from_java(
-                        order_id=str(args["order_id"]), 
-                        user_token=self.user_token
+                        order_id=str(args["order_id"]), user_token=self.user_token
                     )
                     content_result = str(data)
 
@@ -143,8 +140,7 @@ class AgentService:
                 # Cria a mensagem de resposta da ferramenta
                 tool_outputs.append(
                     ToolMessage(
-                        content=str(content_result), 
-                        tool_call_id=tool_call["id"]
+                        content=str(content_result), tool_call_id=tool_call["id"]
                     )
                 )
 
@@ -166,7 +162,7 @@ class AgentService:
             final_chain = final_prompt | self.llm
             final_response = final_chain.invoke({})
             return final_response.content
-        
+
         else:
             print("🤖 IA está response sem utilizar dados da RiffHouse")
             # Se a IA não chamou tools (ex: "Oi tudo bem?"), devolve a resposta direta

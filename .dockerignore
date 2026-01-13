@@ -1,0 +1,17 @@
+venv/
+.venv/
+env/
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.git
+.vscode
+.idea
+
+.env
+.env.local
+__MACOSX
+.DS_Store
