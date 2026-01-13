@@ -73,9 +73,25 @@ BACKEND_URL=http://localhost:8080
 
 ---
 
-## ⚡ Como Rodar Localmente
+## ⚡ Como Rodar
 
-### Pré-requisitos
+### 🐳 Via Docker (Recomendado)
+Sobe toda a infraestrutura (API, Banco e Front End) com um comando:
+
+```bash
+  # Clone o repositório
+  git clone https://github.com/DarkMatter015/ai-service-ecommerce.git
+  cd ai-service-ecommerce
+  
+  # 2. Inicie os serviços
+  docker-compose up --build -d
+```
+
+✅ API AI: http://localhost:8000 | FrontEnd: http://localhost:80
+
+### Localmente
+
+#### Pré-requisitos
 *  Python 3.10+
 *  PostgreSQL com extensão `vector` instalada.
 
@@ -103,11 +119,6 @@ O servidor iniciará na porta `8000`.
 ```
 
 👉 **Swagger UI:** Acesse `http://localhost:8000/docs` para testar os endpoints interativamente.
-
----
-
-## 🐳 Docker (Em Breve)
-A containerização deste serviço está no roadmap imediato. O objetivo é orquestrar o `ai-service` junto com o `server-ecommerce` e o `client-ecommerce` via Docker Compose.
 
 ---
 
