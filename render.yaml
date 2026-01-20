@@ -7,11 +7,15 @@ services:
       envVars:
           - key: PORT
             value: 8000
+          - key: DB_HOST
+            sync: false
+          - key: DB_PORT
+            sync: false
+          - key: DB_NAME
+            sync: false
           - key: DB_USERNAME
             sync: false
           - key: DB_PASSWORD
-            sync: false
-          - key: DATABASE_URL
             sync: false
           - key: GROQ_API_KEY
             sync: false
