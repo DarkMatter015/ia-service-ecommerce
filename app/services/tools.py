@@ -1,5 +1,5 @@
 import httpx
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.repositories.product import ProductRepository
@@ -7,13 +7,13 @@ from app.services.llm_factory import get_embeddings
 
 
 class EcommerceTools:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.embeddings = get_embeddings()
         self.repo = ProductRepository(db)
 
     # Analytics (Ranking, Count, Avg)
-    def product_analytics(
+    async def product_analytics(
         self,
         intent: str,
         category: str = None,
@@ -35,13 +35,15 @@ class EcommerceTools:
         if intent == "count":
             # Ex: "Quantos produtos tem na categoria X?"
             total = (
-                self.repo.count_by_category(category) if category else self.repo.count()
+                await self.repo.count_by_category(category)
+                if category
+                else await self.repo.count()
             )
             return f"Total encontrado: {total} produtos."
 
         elif intent == "average_price":
             # Ex: "Qual a média de preço das guitarras?"
-            avg = self.repo.average_price(category)
+            avg = await self.repo.average_price(category)
             val = round(avg, 2) if avg else 0
             return f"O preço médio {'da categoria ' + category if category else 'geral'} é R$ {val}."
 
@@ -55,7 +57,7 @@ class EcommerceTools:
             elif order_by == "stock_desc":
                 field = "stock"
 
-            results = self.repo.list_products(
+            results = await self.repo.list_products(
                 category=category,
                 order_by_field=field,
                 order_direction=direction,
@@ -77,8 +79,8 @@ class EcommerceTools:
         return "Não entendi o tipo de análise solicitada."
 
     # Busca Híbrida (Texto + Vetor)
-    def search_catalog_tool(self, query: str):
-        results = self.hybrid_search(query)
+    async def search_catalog_tool(self, query: str):
+        results = await self.hybrid_search(query)
 
         if not results:
             return "Nenhum produto relevante encontrado."
@@ -87,7 +89,7 @@ class EcommerceTools:
             [f"Produto: {p.content} (Preço/Info: {p.metadata_})" for p in results]
         )
 
-    def hybrid_search(self, query: str, limit: int = 5):
+    async def hybrid_search(self, query: str, limit: int = 5):
         """
         Executa busca híbrida usando RRF (Reciprocal Rank Fusion).
         """
@@ -95,10 +97,10 @@ class EcommerceTools:
 
         # Busca Vetorial (Semântica)
         query_vector = get_embeddings().embed_query(query)
-        vector_results = self.repo.search_by_vector(query_vector, limit * 2)
+        vector_results = await self.repo.search_by_vector(query_vector, limit * 2)
 
         # Busca Keyword (Full-Text Search)
-        keyword_results = self.repo.search_by_keyword(query, limit * 2)
+        keyword_results = await self.repo.search_by_keyword(query, limit * 2)
 
         # Fusão RRF (Reciprocal Rank Fusion)
         product_map = {p.id: p for p in vector_results + keyword_results}

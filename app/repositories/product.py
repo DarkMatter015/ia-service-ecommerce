@@ -1,23 +1,22 @@
 from typing import Any, Dict, List
 
 from sqlalchemy import select, func, text, cast, Numeric, Text
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product import ProductEmbedding
 from app.repositories.base import BaseRepository
 
 
 class ProductRepository(BaseRepository[ProductEmbedding]):
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         super().__init__(db, ProductEmbedding)
 
-    def get_products_for_sync(self) -> List[Dict[str, Any]]:
+    async def get_products_for_sync(self) -> List[Dict[str, Any]]:
         """
         Fetches products from the legacy 'tb_product' table joined with 'tb_category'.
         """
-        return (
-            self.db.execute(
-                text("""
+        result = await self.db.execute(
+            text("""
             SELECT 
                 p.id, 
                 p.name, 
@@ -30,19 +29,17 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
             FROM tb_product p
             LEFT JOIN tb_category c ON p.category_id = c.id
         """)
-            )
-            .mappings()
-            .all()
         )
+        return result.mappings().all()
 
-    def exists_by_product_id(self, product_id: int) -> bool:
-        return (
-            self.db.query(self.model).filter_by(product_id=product_id).first()
-            is not None
+    async def exists_by_product_id(self, product_id: int) -> bool:
+        result = await self.db.execute(
+            select(self.model).filter_by(product_id=product_id)
         )
+        return result.scalars().first() is not None
 
     # --- Métodos de Busca Híbrida ---
-    def search_by_vector(
+    async def search_by_vector(
         self, query_vector: List[float], limit: int
     ) -> List[ProductEmbedding]:
         """
@@ -54,9 +51,10 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
             .limit(limit)
         )
 
-        return self.db.execute(stmt).scalars().all()
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
 
-    def search_by_keyword(self, query: str, limit: int) -> List[ProductEmbedding]:
+    async def search_by_keyword(self, query: str, limit: int) -> List[ProductEmbedding]:
         """
         Searches for products using keyword matching.
         """
@@ -67,31 +65,36 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
             .limit(limit)
         )
 
-        return self.db.execute(stmt).scalars().all()
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
 
     # --- Métodos de Analytics (Ranking/Count) ---
-    def average_price(self, category: str = None):
-        price_field = cast(self.model.metadata_['price'].cast(Text), Numeric)
+    async def average_price(self, category: str = None):
+        price_field = cast(self.model.metadata_["price"].cast(Text), Numeric)
         query = select(func.avg(price_field))
         if category:
-            query = query.filter(self.model.metadata_['category'].cast(Text).ilike(f"%{category}%"))
-        return self.db.execute(query).scalar()
+            query = query.filter(
+                self.model.metadata_["category"].cast(Text).ilike(f"%{category}%")
+            )
+        result = await self.db.execute(query)
+        return result.scalar()
 
-    def count_by_category(self, category: str) -> int:
-        return self.db.execute(
+    async def count_by_category(self, category: str) -> int:
+        result = await self.db.execute(
             select(func.count(ProductEmbedding.id))
             .filter(text("metadata->>'category' ILIKE :cat"))
             .params(cat=f"%{category}%")
-        ).scalar()
+        )
+        return result.scalar()
 
-    def list_products(
+    async def list_products(
         self,
         category: str = None,
         order_by_field: str = None,
         order_direction: str = "asc",
         limit: int = 5,
     ):
-        query = self.db.query(self.model)
+        query = select(self.model)
 
         # Filtro
         if category:
@@ -102,10 +105,10 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
         # Ordenação
         if order_by_field:
             direction = "DESC" if order_direction.lower() == "desc" else "ASC"
-            # Cast seguro para numeric ou int dependendo do campo
             cast_type = "int" if order_by_field == "stock" else "numeric"
             query = query.order_by(
                 text(f"(metadata->>'{order_by_field}')::{cast_type} {direction}")
             )
 
-        return query.limit(limit).all()
+        result = await self.db.execute(query.limit(limit))
+        return result.scalars().all()

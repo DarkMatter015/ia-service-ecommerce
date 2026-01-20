@@ -1,10 +1,11 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.orm import declarative_base
 from app.core.config import settings
 
-# TODO: migrar para asyncpg depois
-# Conexão síncrona para simplicidade inicial
-engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Async connection
+engine = create_async_engine(settings.SQLALCHEMY_DATABASE_URI, echo=False)
+SessionLocal = async_sessionmaker(
+    bind=engine, class_=AsyncSession, expire_on_commit=False
+)
 
 Base = declarative_base()

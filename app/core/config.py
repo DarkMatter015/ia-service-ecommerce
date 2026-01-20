@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         if self.DATABASE_URL:
-            return self.DATABASE_URL
+            # Ensure we use the async driver even if the env var specifies sync
+            return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
         if (
             self.DB_HOST
@@ -25,7 +26,7 @@ class Settings(BaseSettings):
             and self.DB_USERNAME
             and self.DB_PASSWORD
         ):
-            return f"postgresql://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+            return f"postgresql+asyncpg://{self.DB_USERNAME}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
         raise ValueError(
             "Database configuration is incomplete. define DATABASE_URL or (DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD)."

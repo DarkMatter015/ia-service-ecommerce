@@ -1,43 +1,54 @@
 from typing import Generic, TypeVar, Type, List, Optional, Any
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from app.core.database import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 
 
 class BaseRepository(Generic[ModelType]):
-    def __init__(self, db: Session, model: Type[ModelType]):
+    def __init__(self, db: AsyncSession, model: Type[ModelType]):
         self.db = db
         self.model = model
 
-    def get(self, id: Any) -> Optional[ModelType]:
-        return self.db.query(self.model).filter(self.model.id == id).first()
+    async def get(self, id: Any) -> Optional[ModelType]:
+        result = await self.db.execute(select(self.model).filter(self.model.id == id))
+        return result.scalars().first()
 
-    def list(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
-        return self.db.query(self.model).offset(skip).limit(limit).all()
+    async def list(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
+        result = await self.db.execute(select(self.model).offset(skip).limit(limit))
+        return result.scalars().all()
 
-    def create(self, obj_in: ModelType) -> ModelType:
+    async def create(self, obj_in: ModelType) -> ModelType:
         self.db.add(obj_in)
-        self.db.commit()
-        self.db.refresh(obj_in)
+        await self.db.commit()
+        await self.db.refresh(obj_in)
         return obj_in
 
-    def update(self, db_obj: ModelType, obj_in: Any) -> ModelType:
+    async def update(self, db_obj: ModelType, obj_in: Any) -> ModelType:
         for field, value in obj_in.items():
             setattr(db_obj, field, value)
         self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
         return db_obj
 
-    def delete(self, id: Any) -> ModelType:
-        obj = self.db.query(self.model).get(id)
-        self.db.delete(obj)
-        self.db.commit()
+    async def delete(self, id: Any) -> ModelType:
+        result = await self.db.execute(select(self.model).filter(self.model.id == id))
+        obj = result.scalars().first()
+        if obj:
+            await self.db.delete(obj)
+            await self.db.commit()
         return obj
 
-    def count(self) -> int:
-        return self.db.query(self.model).count()
+    async def count(self) -> int:
+        result = await self.db.execute(select(func.count()).select_from(self.model))
+        return result.scalar()
 
-    def order_by(self, field: str, order: str = "asc") -> List[ModelType]:
-        return self.db.query(self.model).order_by(getattr(self.model, field)).all()
+    async def order_by(self, field: str, order: str = "asc") -> List[ModelType]:
+        query = select(self.model).order_by(getattr(self.model, field))
+        if order == "desc":
+            query = select(self.model).order_by(getattr(self.model, field).desc())
+
+        result = await self.db.execute(query)
+        return result.scalars().all()

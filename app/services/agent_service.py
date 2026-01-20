@@ -1,13 +1,13 @@
 from langchain_core.messages import ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.llm_factory import get_llm
 from app.services.tools import EcommerceTools
 
 
 class AgentService:
-    def __init__(self, db: Session, user_token: str):
+    def __init__(self, db: AsyncSession, user_token: str):
         self.db = db
         self.llm = get_llm()
         self.user_token = user_token
@@ -121,7 +121,7 @@ class AgentService:
 
                 # Roteamento manual
                 if fn_name == "search_catalog":
-                    content_result = self.tools.search_catalog_tool(args["query"])
+                    content_result = await self.tools.search_catalog_tool(args["query"])
 
                 elif fn_name == "check_order_status":
                     data = await self.tools.fetch_order_from_java(
@@ -130,7 +130,7 @@ class AgentService:
                     content_result = str(data)
 
                 elif fn_name == "product_analytics":
-                    content_result = self.tools.product_analytics(
+                    content_result = await self.tools.product_analytics(
                         intent=args.get("intent"),
                         category=args.get("category"),
                         order_by=args.get("order_by"),
@@ -144,7 +144,6 @@ class AgentService:
                     )
                 )
 
-            # TODO: FIX ME Alucination when asks abou most expensive products
             # 6. Segunda Chamada (LLM Gera a Resposta Final com os dados)
             # Reconstruímos o histórico: System -> User -> AI (com intenção de tool) -> Tool Output
             final_prompt = ChatPromptTemplate.from_messages(
