@@ -1,0 +1,21 @@
+services:
+    - type: web
+      name: riffhouse-ai-service
+      env: docker
+      plan: free
+      dockerContext: .
+      envVars:
+          - key: PORT
+            value: 8000
+          - key: DB_USERNAME
+            sync: false
+          - key: DB_PASSWORD
+            sync: false
+          - key: DATABASE_URL
+            sync: false
+          - key: GROQ_API_KEY
+            sync: false
+          - key: GOOGLE_API_KEY
+            sync: false
+          - key: BACKEND_URL
+            sync: false
