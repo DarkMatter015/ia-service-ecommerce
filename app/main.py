@@ -21,6 +21,6 @@ app.add_middleware(
 app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
 app.include_router(ingestion.router, prefix="/api/v1/ingestion", tags=["ingestion"])
 
-@app.get("/")
+@app.get("/api/health")
 def health_check():
     return {"status": "ok", "service": "RiffHouse AI"}
