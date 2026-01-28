@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     # BACKEND
     BACKEND_URL: str = "http://localhost:8080"
 
+    # RabbitMQ
+    RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
+
     class Config:
         env_file = ".env"
         extra = "ignore"
