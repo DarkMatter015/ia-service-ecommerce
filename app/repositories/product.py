@@ -112,3 +112,9 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
 
         result = await self.db.execute(query.limit(limit))
         return result.scalars().all()
+        
+    async def get_by_product_id(self, product_id: int) -> ProductEmbedding:
+        result = await self.db.execute(
+            select(self.model).filter_by(product_id=product_id)
+        )
+        return result.scalars().first()

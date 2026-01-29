@@ -32,15 +32,18 @@ async def process_message(message: AbstractIncomingMessage):
                 return
 
             logger.info(f"Recebido: {data.get('id', '?')} | Evento: {message.routing_key}")
+            print(f"Recebido: {data.get('id', '?')} | Evento: {message.routing_key}")
 
             async with SessionLocal() as db:
                 service = ProductSyncService(db)
                 await service.upsert_product(data)
                 
             logger.info(f"✅ Sucesso: {data.get('id')}")
+            print(f"✅ Sucesso: {data.get('id')}")
 
         except Exception as e:
             logger.error(f"❌ Erro processando msg: {e}", exc_info=True)
+            print(f"❌ Erro processando msg: {e}")
             # Requeue=False manda para a DLQ configurada na fila principal
             await message.nack(requeue=False)
 

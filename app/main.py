@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from app.api.v1 import chat, ingestion
 from app.core.config import settings
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio
 from contextlib import asynccontextmanager
 from app.core.rabbitmq import start_rabbitmq_consumer
 
@@ -11,16 +10,22 @@ async def lifespan(app: FastAPI):
     # --- Startup ---
     print("🚀 Iniciando RiffHouse AI...")
     
-    # Inicia o RabbitMQ em background task para não bloquear o boot da API
-    # Salvamos a task para manter referência
-    task = asyncio.create_task(start_rabbitmq_consumer())
+    # 1. Iniciamos o consumidor e PEGAMOS a conexão
+    connection = await start_rabbitmq_consumer()
+    
+    # 2. SALVAMOS A CONEXÃO NO ESTADO DO APP
+    app.state.rabbitmq_connection = connection
     
     yield
     
     # --- Shutdown ---
     print("🛑 Desligando serviços...")
-    # O aio_pika gerencia o shutdown gracioso na conexão robusta, 
-    # mas aqui você poderia cancelar a task se necessário.
+    try:
+        # Fechamos a conexão graciosamente ao desligar a API
+        await app.state.rabbitmq_connection.close()
+        print("🐰 Conexão RabbitMQ fechada.")
+    except Exception as e:
+        print(f"Erro ao fechar RabbitMQ: {e}")
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
