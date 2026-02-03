@@ -10,3 +10,5 @@ pydantic-settings
 python-dotenv
 httpx
 asyncpg
+aio_pika
+tenacity

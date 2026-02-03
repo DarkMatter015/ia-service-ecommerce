@@ -115,7 +115,7 @@ Sobe toda a infraestrutura (API, Banco e Front End) com um comando:
 O servidor iniciará na porta `8000`.
 
 ```bash
-  uvicorn main:app --reload
+  uvicorn app.main:app --reload
 ```
 
 👉 **Swagger UI:** Acesse `http://localhost:8000/docs` para testar os endpoints interativamente.
