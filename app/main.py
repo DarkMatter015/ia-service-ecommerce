@@ -4,11 +4,15 @@ from app.core.config import settings
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core.rabbitmq import start_rabbitmq_consumer
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Startup ---
-    print("🚀 Iniciando RiffHouse AI...")
+    logger.info("🚀 Iniciando RiffHouse AI...")
     
     # 1. Iniciamos o consumidor e PEGAMOS a conexão
     connection = await start_rabbitmq_consumer()
@@ -19,13 +23,13 @@ async def lifespan(app: FastAPI):
     yield
     
     # --- Shutdown ---
-    print("🛑 Desligando serviços...")
+    logger.info("🛑 Desligando serviços...")
     try:
-        # Fechamos a conexão graciosamente ao desligar a API
+        # Fechamos a conexão ao desligar a API
         await app.state.rabbitmq_connection.close()
-        print("🐰 Conexão RabbitMQ fechada.")
+        logger.info("🐰 Conexão RabbitMQ fechada.")
     except Exception as e:
-        print(f"Erro ao fechar RabbitMQ: {e}")
+        logger.error(f"Erro ao fechar RabbitMQ: {e}")
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
