@@ -3,8 +3,8 @@ from typing import Any, Dict, List
 from sqlalchemy import select, func, text, cast, Numeric, Text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.product import ProductEmbedding
-from app.repositories.base import BaseRepository
+from app.models.product_model import ProductEmbedding
+from app.repositories.base_repository import BaseRepository
 
 
 class ProductRepository(BaseRepository[ProductEmbedding]):
@@ -112,7 +112,7 @@ class ProductRepository(BaseRepository[ProductEmbedding]):
 
         result = await self.db.execute(query.limit(limit))
         return result.scalars().all()
-        
+
     async def get_by_product_id(self, product_id: int) -> ProductEmbedding:
         result = await self.db.execute(
             select(self.model).filter_by(product_id=product_id)

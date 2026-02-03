@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.product import ProductEmbedding
-from app.services.llm_factory import get_embeddings
-from app.repositories.product import ProductRepository
+from app.models.product_model import ProductEmbedding
+from app.ai.factory import get_embeddings
+from app.repositories.product_repository import ProductRepository
 from tenacity import (
     retry,
     stop_after_attempt,

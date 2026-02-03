@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.models.product import ProductEmbedding
-from app.repositories.product import ProductRepository
-from app.services.llm_factory import get_embeddings
+from app.models.product_model import ProductEmbedding
+from app.repositories.product_repository import ProductRepository
+from app.ai.factory import get_embeddings
 
 router = APIRouter()
 
