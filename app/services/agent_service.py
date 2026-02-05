@@ -82,6 +82,7 @@ class AgentService:
                             limit=args.get("limit", "5"),
                         )
                 except Exception as e:
+                    logger.error("🔥 ERRO CRÍTICO NA INGESTÃO", exc_info=True)
                     content_result = f"Erro ao executar a tool {fn_name}: {e}"
 
                 # Cria a mensagem de resposta da ferramenta
