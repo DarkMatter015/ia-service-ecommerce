@@ -2,8 +2,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
 from app.api.deps import get_db
+from app.schemas.chat_schema import ChatRequest, ChatResponse
 from app.services.agent_service import AgentService
 import logging
 
@@ -12,14 +12,6 @@ router = APIRouter()
 security = HTTPBearer(auto_error=False)
 
 logger = logging.getLogger(__name__)
-
-
-class ChatRequest(BaseModel):
-    message: str
-
-
-class ChatResponse(BaseModel):
-    response: str
 
 
 @router.post("/message", response_model=ChatResponse)
@@ -33,7 +25,7 @@ async def chat_endpoint(
         service = AgentService(db, user_token=full_token)
         answer = await service.handle_request(request.message)
         return ChatResponse(response=answer)
-    except Exception as e:
+    except Exception:
         logger.error("🔥 ERRO CRÍTICO NO CHAT", exc_info=True)
 
         fallback_message = (

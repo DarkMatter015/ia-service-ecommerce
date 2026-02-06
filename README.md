@@ -30,7 +30,7 @@ Utilizei a **GroqCloud** para inferência, aproveitando suas LPUs (Language Proc
 ### 🔍 Vector Search & Embeddings
 Para a busca semântica (RAG), evitei a complexidade de manter um banco vetorial separado (como Pinecone) e optei pela integração nativa:
 * **Vector Store:** **PostgreSQL com `pgvector`**. Isso unifica a stack de dados, permitindo joins entre dados relacionais e vetoriais na mesma infraestrutura.
-* **Embeddings:** **Google GenAI (`text-embedding-004`)**. Modelo eficiente para transformar descrições de produtos em vetores densos.
+* **Embeddings:** **Google GenAI (`gemini-embedding-001`)**. Modelo eficiente para transformar descrições de produtos em vetores densos.
 
 ### 🛠️ Agent Tools (Function Calling)
 O modelo não apenas "gera texto", ele toma decisões sobre qual ferramenta usar com base na pergunta do usuário:
@@ -50,8 +50,8 @@ O modelo não apenas "gera texto", ele toma decisões sobre qual ferramenta usar
 * **Rastreio:** Verifica status, data de entrega e detalhes de pedidos específicos via ID.
 * **Agregação de Dados:** Responde perguntas sobre quantidade de estoque, médias de preço e rankings (produtos mais caros/baratos) em tempo real.
 
-### 🔄 Sincronização de Dados
-* Possui endpoint dedicado `/sync` para reindexar novos produtos adicionados ao banco de dados relacional, garantindo que o Agente sempre conheça o catálogo atualizado.
+### 🔄 Sincronização de Dados Automática
+* Escuta eventos do RabbitMQ para atualizar o catálogo em tempo real, reindexando novos produtos adicionados ao banco de dados relacional, garantindo que o Agente sempre conheça o catálogo atualizado.
 
 ---
 
@@ -61,7 +61,7 @@ Crie um arquivo `.env` na raiz do projeto seguindo o modelo:
 
 ```env
 # Conexão com o Banco de Dados (Deve ter a extensão vector ativada)
-DATABASE_URL=postgresql://user:password@localhost:5432/riffhouse_db
+DATABASE_URL=postgresql://user:password@localhost:5432/riffhouse
 
 # Chaves de API para Modelos de IA
 GROQ_API_KEY=gsk_...
@@ -69,6 +69,14 @@ GOOGLE_API_KEY=AIza...
 
 # Endereço do Backend Java (para realizar buscas de pedidos)
 BACKEND_URL=http://localhost:8080
+
+# API
+MELHOR_ENVIO_API_TOKEN=
+
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+
+JWT_SECRET=
 ```
 
 ---
@@ -125,7 +133,7 @@ O servidor iniciará na porta `8000`.
 ## 🛣️ Roadmap e Melhorias Futuras
 *  [ ] **Memória de Conversa (Chat History):** Implementar Redis para armazenar o contexto da conversa, permitindo perguntas de acompanhamento ("E quanto custa essa que você mostrou?").
 *  [ ] **Cálculo de Frete:** Integração da Tool de IA com a API de CEP.
-*  [ ] **Sync via Eventos:** Substituir o endpoint `/sync` manual por um consumidor RabbitMQ, ouvindo eventos de `product.created` e `product.updated` do backend Java.
+*  [X] **Sync via Eventos:** Substituir o endpoint `/sync` manual por um consumidor RabbitMQ, ouvindo eventos de `product.created` e `product.updated` do backend Java.
 
 ---
 

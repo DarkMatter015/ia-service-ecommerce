@@ -2,18 +2,20 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.models.product import ProductEmbedding
-from app.repositories.product import ProductRepository
-from app.services.llm_factory import get_embeddings
+from app.models.product_model import ProductEmbedding
+from app.repositories.product_repository import ProductRepository
+from app.ai.factory import get_embeddings
+from app.schemas.product_schema import ProductMetadata
+import logging
 
 router = APIRouter()
 
+logger = logging.getLogger(__name__)
 
 @router.post("/sync-products")
 async def sync_products(db: AsyncSession = Depends(get_db)):
     """
     Lê produtos da tabela original (Java) e gera vetores na tabela de IA.
-    ATENÇÃO: Este é um script simples. Em produção, use filas (RabbitMQ).
     """
     repo = ProductRepository(db)
     try:
@@ -45,11 +47,11 @@ async def sync_products(db: AsyncSession = Depends(get_db)):
                 product_id=prod["id"],
                 embedding=vector,
                 content=content_text,
-                metadata_={
-                    "price": float(prod["price"]),
-                    "category": cat_name,
-                    "stock": int(prod["quantity_available_in_stock"]),
-                },
+                metadata_= ProductMetadata(
+                    price=float(prod["price"]),
+                    category=cat_name,
+                    stock=int(prod["quantity_available_in_stock"]),
+                ),
             )
             # Usando db session direto para batch (ou poderíamos adicionar métodos de batch ao repo)
             db.add(new_embedding)
@@ -61,5 +63,5 @@ async def sync_products(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         await db.rollback()
         # Logar o erro real no console para debug
-        print(f"Erro na ingestão: {e}")
+        logger.error("🔥 ERRO CRÍTICO NA INGESTÃO", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

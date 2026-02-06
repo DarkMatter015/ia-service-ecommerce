@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.product import ProductEmbedding
-from app.services.llm_factory import get_embeddings
-from app.repositories.product import ProductRepository
+from app.models.product_model import ProductEmbedding
+from app.ai.factory import get_embeddings
+from app.repositories.product_repository import ProductRepository
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -10,6 +10,7 @@ from tenacity import (
 )
 from google.api_core.exceptions import ResourceExhausted
 import logging
+from app.schemas.product_schema import ProductEventDTO, ProductMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -31,26 +32,24 @@ class ProductSyncService:
         # CORREÇÃO: Usamos este método para garantir que o retry funcione
         return await self.embeddings.aembed_query(text)
 
-    async def upsert_product(self, product_data: dict):
+    async def upsert_product(self, product_data: ProductEventDTO):
         try:
             # 1. Validação Básica (Evita erros bobos)
-            p_id = product_data.get("id")
-            name = product_data.get("name")
+            p_id = product_data.id
+            name = product_data.name
+            category = product_data.category
 
-            if not p_id or not name:
+            if not p_id or not name or not category:
                 logger.warning(
-                    f"⚠️ Produto ignorado por falta de ID ou Nome: {product_data}"
+                    f"⚠️ Produto ignorado por falta de ID ou Nome u Categoria: {product_data}"
                 )
-                return False  # Retorna sucesso para tirar da fila, pois não há salvação
+                return False
 
-            # Tratamento de Nulos (Null Safety)
-            desc = product_data.get("description") or ""
-            price = float(product_data.get("price") or 0)
-            stock = int(product_data.get("stock") or 0)
-            category = product_data.get("category") or "Geral"
+            desc = product_data.description or ""
+            price = product_data.price or 0
+            stock = product_data.stock or 0
 
             # 2. Criar Texto Rico (Limpeza)
-            # Removemos espaços extras e garantimos que não entre "None" no texto
             content_text = (
                 f"Produto: {name}. Categoria: {category}. Descrição: {desc}".strip()
             )
@@ -62,7 +61,11 @@ class ProductSyncService:
             existing_product = await self.repo.get_by_product_id(p_id)
 
             # Metadata para filtros
-            metadata = {"price": price, "category": category, "stock": stock}
+            metadata = ProductMetadata(
+                price=price,
+                category=category,
+                stock=stock,
+            )
 
             if existing_product:
                 logger.info(f"🔄 Atualizando Produto ID {p_id}...")
