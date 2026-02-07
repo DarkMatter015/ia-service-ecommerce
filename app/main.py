@@ -13,15 +13,15 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # --- Startup ---
     logger.info("🚀 Iniciando RiffHouse AI...")
-    
+
     # 1. Iniciamos o consumidor e PEGAMOS a conexão
     connection = await start_rabbitmq_consumer()
-    
+
     # 2. SALVAMOS A CONEXÃO NO ESTADO DO APP
     app.state.rabbitmq_connection = connection
-    
+
     yield
-    
+
     # --- Shutdown ---
     logger.info("🛑 Desligando serviços...")
     try:
@@ -31,11 +31,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Erro ao fechar RabbitMQ: {e}")
 
+
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
-origins = [
-    "*"
-]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -46,8 +45,9 @@ app.add_middleware(
 )
 
 # Rotas
-app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
-app.include_router(ingestion.router, prefix="/api/v1/ingestion", tags=["ingestion"])
+app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["chat"])
+app.include_router(ingestion.router, prefix=f"{settings.API_V1_STR}/ingestion", tags=["ingestion"])
+
 
 @app.get("/api/health")
 def health_check():

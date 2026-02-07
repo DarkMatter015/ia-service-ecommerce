@@ -4,13 +4,14 @@ from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import computed_field
 
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "RiffHouse AI Service"
     API_V1_STR: str = "/api/v1"
-    
+
     # Define o ambiente: 'local', 'staging' ou 'production'
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
-    
+
     # Nível de Log: DEBUG para local, INFO para produção
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
@@ -20,11 +21,11 @@ class Settings(BaseSettings):
     DB_NAME: str | None = None
     DB_USERNAME: str | None = None
     DB_PASSWORD: str | None = None
-    
+
     # Caso queira passar a URL completa direto
     DATABASE_URL: str | None = None
 
-    @computed_field # type: ignore[misc]
+    @computed_field  # type: ignore[misc]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         """
@@ -44,7 +45,7 @@ class Settings(BaseSettings):
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
             )
 
-        # Retorna uma string vazia ou erro se faltar config, 
+        # Retorna uma string vazia ou erro se faltar config,
         raise ValueError(
             "Configuração de Banco incompleta! Defina DATABASE_URL ou as variáveis DB_..."
         )
@@ -55,15 +56,48 @@ class Settings(BaseSettings):
 
     # --- Integrações ---
     BACKEND_URL: str = "http://localhost:8080"
-    RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
+
+    # --- RabbitMq ---
+    RABBITMQ_HOST: str | None = None
+    RABBITMQ_PORT: str | None = "5672"
+    RABBITMQ_VHOST: str | None = None
+    RABBITMQ_USERNAME: str | None = None
+    RABBITMQ_PASSWORD: str | None = None
+
+    # Caso queira passar a URL completa direto
+    RABBITMQ_URL: str | None = None
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def GET_RABBITMQ_URL(self) -> str:
+        """
+        Monta a URL de conexão do Rabbitmq.
+        Prioridade: RABBITMQ_URL > Componentes individuais.
+        """
+        if self.RABBITMQ_URL:
+            return self.RABBITMQ_URL
+
+        if (
+            self.RABBITMQ_HOST
+            and self.RABBITMQ_USERNAME
+            and self.RABBITMQ_VHOST
+            and self.RABBITMQ_PASSWORD
+        ):
+            return (
+                f"amqp://{self.RABBITMQ_USERNAME}:{self.RABBITMQ_PASSWORD}"
+                f"@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}/{self.RABBITMQ_VHOST}"
+            )
+
+        # Retorna uma string vazia ou erro se faltar config,
+        raise ValueError(
+            "Configuração de Rabbitmq incompleta! Defina RABBITMQ_URL ou as variáveis RABBITMQ_..."
+        )
 
     # --- Configuração do Pydantic v2 ---
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-        case_sensitive=True
+        env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=True
     )
+
 
 # ---------------------------------------------------------------------------
 # CONFIGURAÇÃO DE LOGGING
@@ -72,10 +106,10 @@ def setup_logging(settings: Settings):
     """
     Configura o logger globalmente usando dictConfig.
     """
-    
+
     # Formato dos logs: Timestamp | Nível | Logger | Mensagem
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    
+
     logging_config = {
         "version": 1,
         "disable_existing_loggers": False,
@@ -87,9 +121,9 @@ def setup_logging(settings: Settings):
             "json": {
                 "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
                 "format": "%(asctime)s %(name)s %(levelname)s %(message)s",
-            } if settings.ENVIRONMENT == "production" else {
-                "format": log_format
             }
+            if settings.ENVIRONMENT == "production"
+            else {"format": log_format},
         },
         "handlers": {
             "console": {
@@ -120,7 +154,7 @@ def setup_logging(settings: Settings):
             # RabbitMQ Lib (aio_pika)
             "aio_pika": {
                 "handlers": ["console"],
-                "level": "WARNING", # Evita spam de heartbeat
+                "level": "WARNING",  # Evita spam de heartbeat
                 "propagate": False,
             },
             # Uvicorn (Servidor Web)
@@ -133,6 +167,7 @@ def setup_logging(settings: Settings):
     }
 
     logging.config.dictConfig(logging_config)
+
 
 settings = Settings()
 

@@ -49,7 +49,7 @@ async def process_message(message: AbstractIncomingMessage):
 
 async def start_rabbitmq_consumer():
     try:
-        connection = await aio_pika.connect_robust(settings.RABBITMQ_URL)
+        connection = await aio_pika.connect_robust(settings.GET_RABBITMQ_URL)
         channel = await connection.channel()
         await channel.set_qos(prefetch_count=10)
 
