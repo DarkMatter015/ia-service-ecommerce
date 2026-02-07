@@ -13,3 +13,4 @@ asyncpg
 aio_pika
 tenacity
 google-api-core
+python-json-logger
