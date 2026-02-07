@@ -12,3 +12,4 @@ httpx
 asyncpg
 aio_pika
 tenacity
+google-api-core
