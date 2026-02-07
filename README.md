@@ -59,24 +59,38 @@ O modelo não apenas "gera texto", ele toma decisões sobre qual ferramenta usar
 
 Crie um arquivo `.env` na raiz do projeto seguindo o modelo:
 
-```env
-# Conexão com o Banco de Dados (Deve ter a extensão vector ativada)
-DATABASE_URL=postgresql://user:password@localhost:5432/riffhouse
-
+```
 # Chaves de API para Modelos de IA
-GROQ_API_KEY=gsk_...
-GOOGLE_API_KEY=AIza...
+GROQ_API_KEY=
+GOOGLE_API_KEY=
+
 
 # Endereço do Backend Java (para realizar buscas de pedidos)
 BACKEND_URL=http://localhost:8080
 
-# API
-MELHOR_ENVIO_API_TOKEN=
+# Somente necessário se rodar com docker
+# JWT_SECRET=secret
+# MELHOR_ENVIO_API_TOKEN=
 
+
+# Conexão com o Banco de Dados (Deve ter a extensão vector ativada)
+# Pode optar por passar a URL completa ou as variáveis individuais
+# DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/riffhouse
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=riffhouse
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
 
-JWT_SECRET=
+
+# RabbitMq
+# Pode optar por passar a URL completa ou as variáveis individuais
+# RABBITMQ_URL=amqp://guest:guest@localhost:5672/
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+RABBITMQ_VHOST=guest
+RABBITMQ_USERNAME=guest
+RABBITMQ_PASSWORD=guest
 ```
 
 ---
@@ -112,8 +126,8 @@ Sobe toda a infraestrutura (API, Banco e Front End) com um comando:
   
   # Crie um ambiente virtual
   python -m venv venv
-  source venv/bin/activate  # Linux/Mac
-  # venv\Scripts\activate   # Windows
+  # source venv/bin/activate  # Linux/Mac
+  venv\Scripts\activate   # Windows
   
   # Instale as dependências
   pip install -r requirements.txt

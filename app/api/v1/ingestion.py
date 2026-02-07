@@ -12,6 +12,7 @@ router = APIRouter()
 
 logger = logging.getLogger(__name__)
 
+
 @router.post("/sync-products")
 async def sync_products(db: AsyncSession = Depends(get_db)):
     """
@@ -47,7 +48,7 @@ async def sync_products(db: AsyncSession = Depends(get_db)):
                 product_id=prod["id"],
                 embedding=vector,
                 content=content_text,
-                metadata_= ProductMetadata(
+                metadata_=ProductMetadata(
                     price=float(prod["price"]),
                     category=cat_name,
                     stock=int(prod["quantity_available_in_stock"]),
@@ -62,6 +63,5 @@ async def sync_products(db: AsyncSession = Depends(get_db)):
 
     except Exception as e:
         await db.rollback()
-        # Logar o erro real no console para debug
         logger.error("🔥 ERRO CRÍTICO NA INGESTÃO", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
