@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.schemas.chat_schema import ChatRequest, ChatResponse
 from app.services.agent_service import AgentService
+from app.services.chat_service import ChatService
 import logging
 
 router = APIRouter()
@@ -23,10 +24,37 @@ async def chat_endpoint(
     try:
         full_token = f"Bearer {token_auth.credentials}" if token_auth else None
         service = AgentService(db, user_token=full_token)
-        answer = await service.handle_request(request.message)
+        answer = await service.handle_request(request.message, request.session_id)
         return ChatResponse(response=answer)
     except Exception:
         logger.error("🔥 ERRO CRÍTICO NO CHAT", exc_info=True)
+
+        fallback_message = (
+            "Eita, Lenda! 🎸 Deu uma microfonia nervosa aqui no meu sistema e "
+            "perdi a conexão com o estúdio. 🔌"
+            "Pode repetir a pergunta, por favor? Se continuar falhando, "
+            "tente novamente em alguns minutos enquanto eu afino as cordas!"
+        )
+
+        return ChatResponse(response=fallback_message)
+
+
+@router.delete("/{session_id}")
+async def chat_endpoint_delete(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+    token_auth: HTTPAuthorizationCredentials = Depends(security),
+):
+    try:
+        full_token = f"Bearer {token_auth.credentials}" if token_auth else None
+        if not full_token:
+            return ChatResponse(response="Token não fornecido!")
+
+        service = ChatService(db)
+        await service.clear_session(session_id)
+        return ChatResponse(response="Sessão limpa com sucesso!")
+    except Exception:
+        logger.error("🔥 ERRO CRÍTICO AO LIMPAR SESSÃO", exc_info=True)
 
         fallback_message = (
             "Eita, Lenda! 🎸 Deu uma microfonia nervosa aqui no meu sistema e "

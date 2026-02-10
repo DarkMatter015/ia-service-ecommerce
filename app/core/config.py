@@ -93,6 +93,34 @@ class Settings(BaseSettings):
             "Configuração de Rabbitmq incompleta! Defina RABBITMQ_URL ou as variáveis RABBITMQ_..."
         )
 
+    # --- Redis ---
+    REDIS_HOST: str | None = None
+    REDIS_PORT: str | None = "6379"
+    REDIS_DB: str | None = "0"
+
+    # Caso queira passar a URL completa direto
+    REDIS_URL: str | None = None
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def GET_REDIS_URL(self) -> str:
+        """
+        Monta a URL de conexão do Redis.
+        Prioridade: REDIS_URL > Componentes individuais.
+        """
+        if self.REDIS_URL:
+            return self.REDIS_URL
+
+        if self.REDIS_HOST and self.REDIS_DB:
+            return (
+                f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+            )
+
+        # Retorna uma string vazia ou erro se faltar config,
+        raise ValueError(
+            "Configuração de Redis incompleta! Defina REDIS_URL ou as variáveis REDIS_..."
+        )
+
     # --- Configuração do Pydantic v2 ---
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=True

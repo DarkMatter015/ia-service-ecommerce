@@ -16,6 +16,8 @@ from app.ai.prompts import (
 
 import logging
 
+from app.services.chat_service import ChatService
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,8 +29,9 @@ class AgentService:
         self.analytics_tools = AnalyticsTools(db)
         self.catalog_tools = CatalogTools(db)
         self.orders_tools = OrdersTools(db)
+        self.chat_service = ChatService(db, user_token)
 
-    async def handle_request(self, user_message: str):
+    async def handle_request(self, user_message: str, session_id: str):
         # 1. Definição das Tools (Schemas JSON para a LLM entender)
         tools_schema = get_tools_schema()
 
@@ -38,12 +41,24 @@ class AgentService:
         # 3. Prompt do Sistema
         system_instruction = get_system_instruction()
 
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", system_instruction),
-                ("user", "{input}"),
-            ]
-        )
+        context = await self.chat_service.get_context(session_id)
+        logger.info(f"Contexto: {context}")
+
+        if context:
+            prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", system_instruction),
+                    *context,
+                    ("user", "{input}"),
+                ]
+            )
+        else:
+            prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", system_instruction),
+                    ("user", "{input}"),
+                ]
+            )
 
         # 4. Primeira Chamada (LLM Pensa)
         chain = prompt | llm_with_tools
