@@ -32,6 +32,13 @@ class ChatService:
         # DB: Persistência permanente
         await self.repo.add_message(session_id, role, content)
 
+    async def create_session(self, user_id: str, title: str):
+        """Cria uma nova sessão."""
+        await redis_client.hset(f"chat:{user_id}", "title", title)
+        await redis_client.expire(f"chat:{user_id}", 3600)
+        session = await self.repo.create_session(user_id, title)
+        return session
+
     async def clear_session(self, session_id: str):
         """Limpa histórico."""
         await redis_client.delete(f"chat:{session_id}")

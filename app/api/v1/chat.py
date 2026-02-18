@@ -38,8 +38,27 @@ async def chat_endpoint(
 
         return ChatResponse(response=fallback_message)
 
+@router.post("/session")
+async def chat_endpoint_post(
+    db: AsyncSession = Depends(get_db),
+    token_auth: HTTPAuthorizationCredentials = Depends(security),
+    user_id: str = None,
+    title: str = None,
+):
+    try:
+        full_token = f"Bearer {token_auth.credentials}" if token_auth else None
+        if not full_token:
+            return ChatResponse(response="Token não fornecido!")
 
-@router.delete("/{session_id}")
+        service = ChatService(db)
+        session = await service.create_session(user_id, title)
+        return ChatResponse(response=session)
+    except Exception:
+        logger.error("🔥 ERRO CRÍTICO AO CRIAR SESSÃO", exc_info=True)
+        return ChatResponse(response="Erro ao criar sessão!")
+
+
+@router.delete("/session/{session_id}")
 async def chat_endpoint_delete(
     session_id: str,
     db: AsyncSession = Depends(get_db),
@@ -55,12 +74,4 @@ async def chat_endpoint_delete(
         return ChatResponse(response="Sessão limpa com sucesso!")
     except Exception:
         logger.error("🔥 ERRO CRÍTICO AO LIMPAR SESSÃO", exc_info=True)
-
-        fallback_message = (
-            "Eita, Lenda! 🎸 Deu uma microfonia nervosa aqui no meu sistema e "
-            "perdi a conexão com o estúdio. 🔌"
-            "Pode repetir a pergunta, por favor? Se continuar falhando, "
-            "tente novamente em alguns minutos enquanto eu afino as cordas!"
-        )
-
-        return ChatResponse(response=fallback_message)
+        return ChatResponse(response="Erro ao limpar sessão!")
