@@ -1,10 +1,9 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime
+from sqlalchemy import Column, String, ForeignKey, Text, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-import datetime
-from sqlalchemy.dialects.postgresql import UUID, BigInteger
+from datetime import datetime, timezone
+from sqlalchemy.dialects.postgresql import UUID, BIGINT
 import uuid
-import timezone
 
 
 class ChatSession(Base):
@@ -13,7 +12,7 @@ class ChatSession(Base):
     # Usamos UUID nativo para performance e segurança
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     # Alinhado com o BIGINT do Java/Postgres
-    user_id = Column(BigInteger, nullable=False, index=True)
+    user_id = Column(BIGINT, nullable=False, index=True)
     title = Column(String(255), nullable=True)
 
     # timezone=True garante compatibilidade com TIMESTAMPTZ
@@ -30,7 +29,7 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     # BIGSERIAL no Postgres mapeia para BigInteger no SQLAlchemy
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(BIGINT, primary_key=True, autoincrement=True)
     session_id = Column(
         UUID(as_uuid=True), ForeignKey("chat_sessions.id"), nullable=False
     )

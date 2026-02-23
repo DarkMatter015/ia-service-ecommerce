@@ -46,7 +46,9 @@ app.add_middleware(
 
 # Rotas
 app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["chat"])
-app.include_router(ingestion.router, prefix=f"{settings.API_V1_STR}/ingestion", tags=["ingestion"])
+app.include_router(
+    ingestion.router, prefix=f"{settings.API_V1_STR}/ingestion", tags=["ingestion"]
+)
 
 
 @app.get("/api/health")

@@ -1,6 +1,8 @@
-from app.models.chat_model import ChatSession, ChatMessage
-from app.repositories.base_repository import BaseRepository
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.chat_model import ChatMessage, ChatSession
+from app.repositories.base_repository import BaseRepository
 
 
 class ChatRepository(BaseRepository[ChatSession]):
@@ -8,7 +10,12 @@ class ChatRepository(BaseRepository[ChatSession]):
         super().__init__(db, ChatSession)
 
     def get_messages(self, session_id: str, limit: int = 10) -> list[ChatMessage]:
-        return self.db.query(ChatMessage).filter(ChatMessage.session_id == session_id).limit(limit).all()
+        return (
+            self.db.query(ChatMessage)
+            .filter(ChatMessage.session_id == session_id)
+            .limit(limit)
+            .all()
+        )
 
     def add_message(self, session_id: str, role: str, content: str) -> ChatMessage:
         message = ChatMessage(session_id=session_id, role=role, content=content)
@@ -28,8 +35,12 @@ class ChatRepository(BaseRepository[ChatSession]):
         return self.db.query(ChatSession).filter(ChatSession.id == session_id).first()
 
     def create_session(self, user_id: int, title: str) -> ChatSession:
-        session = ChatSession(user_id=user_id, title=title)
-        self.db.add(session)
-        self.db.commit()
-        self.db.refresh(session)
-        return session
+        try:
+            session = ChatSession(user_id=user_id, title=title)
+            self.db.add(session)
+            self.db.commit()
+            self.db.refresh(session)
+            return session
+        except Exception as e:
+            self.db.rollback()
+            raise e

@@ -15,3 +15,5 @@ tenacity
 google-api-core
 python-json-logger
 ruff
+redis
+PyJWT

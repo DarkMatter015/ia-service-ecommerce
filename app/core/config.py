@@ -56,6 +56,7 @@ class Settings(BaseSettings):
 
     # --- Integrações ---
     BACKEND_URL: str = "http://localhost:8080"
+    JWT_SECRET: str
 
     # --- RabbitMq ---
     RABBITMQ_HOST: str | None = None
