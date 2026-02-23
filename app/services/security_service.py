@@ -22,7 +22,9 @@ class SecurityService:
         - Raises HTTPException on invalid/expired tokens.
         """
         if not token:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token não fornecido")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token não fornecido"
+            )
 
         # Remove Bearer prefix if present
         if token.startswith("Bearer "):
@@ -54,10 +56,16 @@ class SecurityService:
             return payload
         except jwt.ExpiredSignatureError:
             logger.warning("Erro: Token expirado")
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expirado")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expirado"
+            )
         except jwt.InvalidTokenError:
             logger.warning("Erro: Token inválido")
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido"
+            )
         except Exception as exc:
             logger.exception("Erro ao validar token: %s", exc)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Erro ao validar token")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Erro ao validar token"
+            )

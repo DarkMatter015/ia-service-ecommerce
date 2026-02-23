@@ -1,4 +1,5 @@
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
 from app.core.config import settings
 
 

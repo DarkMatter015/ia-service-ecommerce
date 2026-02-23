@@ -1,15 +1,17 @@
+import logging
+
+from google.api_core.exceptions import ResourceExhausted
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.product_model import ProductEmbedding
-from app.ai.factory import get_embeddings
-from app.repositories.product_repository import ProductRepository
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
-from google.api_core.exceptions import ResourceExhausted
-import logging
+
+from app.ai.factory import get_embeddings
+from app.models.product_model import ProductEmbedding
+from app.repositories.product_repository import ProductRepository
 from app.schemas.product_schema import ProductEventDTO, ProductMetadata
 
 logger = logging.getLogger(__name__)

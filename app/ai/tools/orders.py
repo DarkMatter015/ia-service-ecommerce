@@ -1,11 +1,11 @@
+import logging
+
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.factory import get_embeddings
 from app.core.config import settings
 from app.repositories.product_repository import ProductRepository
-from app.ai.factory import get_embeddings
-
-import logging
 
 logger = logging.getLogger(__name__)
 

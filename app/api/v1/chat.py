@@ -44,6 +44,7 @@ async def chat_endpoint(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=fallback_message
         )
 
+
 @router.delete("/session/{session_id}")
 async def chat_endpoint_delete(
     session_id: str,

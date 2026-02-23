@@ -1,8 +1,9 @@
-import sys
 import logging
+import sys
 from typing import Literal
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from pydantic import computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -113,9 +114,7 @@ class Settings(BaseSettings):
             return self.REDIS_URL
 
         if self.REDIS_HOST and self.REDIS_DB:
-            return (
-                f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
-            )
+            return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
         # Retorna uma string vazia ou erro se faltar config,
         raise ValueError(

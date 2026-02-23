@@ -150,12 +150,13 @@ class AgentService:
             await self.chat_service.save_message(session_id, "assistant", final_content)
         else:
             await self.chat_service.save_context_only(session_id, "user", user_message)
-            await self.chat_service.save_context_only(session_id, "assistant", final_content)
+            await self.chat_service.save_context_only(
+                session_id, "assistant", final_content
+            )
 
         # Alterado para retornar session_id explícito, evitando conflitos com `session=None`
         return ChatResponse(
-            response=self._clean_response(final_content), 
-            session_id=session_id 
+            response=self._clean_response(final_content), session_id=session_id
         )
 
     def _clean_response(self, text: str) -> str:

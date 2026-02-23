@@ -1,4 +1,5 @@
 import json
+import logging
 
 from fastapi import HTTPException, status
 
@@ -6,9 +7,9 @@ from app.core.redis import redis_client
 from app.repositories.chat_repository import ChatRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.session_schema import SessionResponse
-import logging
 
 logger = logging.getLogger(__name__)
+
 
 class ChatService:
     def __init__(self, db):
@@ -29,7 +30,9 @@ class ChatService:
     async def save_message(self, session_id: str, role: str, content: str):
         try:
             """Salva no Redis (curto prazo) e DB (longo prazo)."""
-            logging.info(f"Salvando mensagem - Session: {session_id}, Role: {role}, Content: {content[:30]}...")
+            logging.info(
+                f"Salvando mensagem - Session: {session_id}, Role: {role}, Content: {content[:30]}..."
+            )
             msg = {"role": role, "content": content}
 
             # Redis: Mantém apenas as últimas 20 mensagens para o LLM não estourar tokens
@@ -48,11 +51,13 @@ class ChatService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Erro ao salvar mensagem!",
             )
-    
+
     async def save_context_only(self, session_id: str, role: str, content: str):
         try:
             """Salva no Redis (curto prazo) apenas, sem tocar no DB."""
-            logging.info(f"Salvando contexto - Session: {session_id}, Role: {role}, Content: {content[:30]}...")
+            logging.info(
+                f"Salvando contexto - Session: {session_id}, Role: {role}, Content: {content[:30]}..."
+            )
             msg = {"role": role, "content": content}
 
             # Redis: Mantém apenas as últimas 20 mensagens para o LLM não estourar tokens

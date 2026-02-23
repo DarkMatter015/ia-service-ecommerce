@@ -1,7 +1,9 @@
 import json
-import aio_pika
 import logging
+
+import aio_pika
 from aio_pika.abc import AbstractIncomingMessage
+
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.services.product_sync_service import ProductSyncService

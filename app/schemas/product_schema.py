@@ -9,6 +9,7 @@ class ProductEventDTO(BaseModel):
     category: str | None = None
     stock: int | None = None
 
+
 class ProductMetadata(BaseModel):
     price: float
     category: str
