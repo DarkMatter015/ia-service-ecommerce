@@ -75,7 +75,8 @@ class ChatService:
             )
 
     async def create_session(self, user_id: str, title: str) -> SessionResponse:
-        exists = await self.userRepository.exists_by_user_id(user_id)
+        """Cria nova sessão de chat."""
+        exists = await self.userRepository.exists_by_user_id(int(user_id))
         if not exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado!"
@@ -83,8 +84,10 @@ class ChatService:
 
         """Cria uma nova sessão."""
         await redis_client.hset(f"chat:{user_id}", "title", title)
-        await redis_client.expire(f"chat:{user_id}", 3600)
-        session = await self.repo.create_session(user_id, title)
+        await redis_client.expire(
+            f"chat:{user_id}", 3600
+        )  # Expira em 1h de inatividade
+        session = await self.repo.create_session(int(user_id), title)
         return SessionResponse(
             id=str(session.id),
             user_id=session.user_id,

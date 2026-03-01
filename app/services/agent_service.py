@@ -29,22 +29,26 @@ class AgentService:
         self.analytics_tools = AnalyticsTools(db)
         self.catalog_tools = CatalogTools(db)
         self.orders_tools = OrdersTools(db)
-        self.chat_service = ChatService(db, user_token)
+        self.chat_service = ChatService(db)
         self.security_service = SecurityService()
 
     async def handle_request(self, user_message: str, session_id: str) -> ChatResponse:
+        # Validação do token e extração do user_id (se token for válido)
+        user_token = self.user_token
+        if user_token:
+            token = self.security_service.validar_jwt(user_token)
+
+        user_id = token.get("sub") if user_token else None
+        is_anonymous = user_id is None
+
+        context = []
+
         # 1. Definição das Tools (Schemas JSON para a LLM entender)
         tools_schema = get_tools_schema()
         # 2. Bind das tools no modelo
         llm_with_tools = self.llm.bind_tools(tools_schema)
         # 3. Prompt do Sistema
         system_instruction = get_system_instruction()
-
-        token = self.security_service.validar_jwt(self.user_token)
-        user_id = token.get("sub") if token else None
-        is_anonymous = user_id is None
-
-        context = []
 
         if not session_id:
             logger.info("Nenhum session_id fornecido. Inicializando nova sessão.")
@@ -138,6 +142,7 @@ class AgentService:
 
             final_chain = final_prompt | self.llm
             final_content = await final_chain.ainvoke({})
+            final_content = final_content.content
         else:
             logger.info(
                 "🤖 RiffHouse IA está respondendo sem utilizar dados da RiffHouse."

@@ -10,5 +10,7 @@ class UserRepository(BaseRepository[User]):
         super().__init__(db, User)
 
     async def exists_by_user_id(self, user_id: int) -> bool:
-        result = await self.db.execute(select(self.model).filter_by(id=user_id))
+        result = await self.db.execute(
+            select(self.model).filter(self.model.id == user_id)
+        )
         return result.scalars().first() is not None
