@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chat_model import ChatMessage, ChatSession
@@ -45,3 +46,9 @@ class ChatRepository(BaseRepository[ChatSession]):
         except Exception as e:
             await self.db.rollback()
             raise e
+
+    async def exist_session(self, session_id: str) -> bool:
+        result = await self.db.execute(
+            select(self.model).filter_by(id=session_id)
+        )
+        return result.scalars().first() is not None

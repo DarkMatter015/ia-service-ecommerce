@@ -113,3 +113,7 @@ class ChatService:
             title=session.title,
             created_at=str(session.created_at),
         )
+
+    async def session_exists(self, session_id: str) -> bool:
+        """Verifica se a sessão existe."""
+        return await self.repo.exist_session(session_id)

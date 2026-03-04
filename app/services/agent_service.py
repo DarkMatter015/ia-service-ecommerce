@@ -1,6 +1,8 @@
 import logging
 import re
+from uuid import UUID, uuid4
 
+from fastapi import HTTPException, status
 from langchain_core.messages import ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,14 +61,21 @@ class AgentService:
                 session_id = session.id
                 logger.info(f"Nova sessão criada: {session}")
             else:
-                import uuid
-
-                session_id = str(uuid.uuid4())  # ID efêmero apenas para o Redis
+                session_id = str(uuid4())  # ID efêmero apenas para o Redis
                 logger.info(f"Sessão efêmera criada: {session_id}")
         else:
-            # Apenas busca no banco se não for anônimo, mas sempre busca no Redis
-            if not is_anonymous:
-                session = await self.chat_service.get_session(session_id)
+            try:
+                UUID(session_id)
+            except Exception:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Sessão não é valida!",
+                )
+            if not await self.chat_service.session_exists(session_id):
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Sessão não encontrada!",
+                )
             context = await self.chat_service.get_context(session_id)
             logger.info(
                 f"Contexto carregado. {len(context)} interações. Session ID: {session_id}"
