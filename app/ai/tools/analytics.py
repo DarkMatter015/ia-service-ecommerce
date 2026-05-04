@@ -1,9 +1,9 @@
+import logging
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.product_repository import ProductRepository
 from app.ai.factory import get_embeddings
-
-import logging
+from app.repositories.product_repository import ProductRepository
 
 logger = logging.getLogger(__name__)
 

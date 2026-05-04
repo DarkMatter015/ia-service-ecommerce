@@ -1,10 +1,12 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.api.v1 import chat, ingestion
 from app.core.config import settings
-from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 from app.core.rabbitmq import start_rabbitmq_consumer
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +48,9 @@ app.add_middleware(
 
 # Rotas
 app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["chat"])
-app.include_router(ingestion.router, prefix=f"{settings.API_V1_STR}/ingestion", tags=["ingestion"])
+app.include_router(
+    ingestion.router, prefix=f"{settings.API_V1_STR}/ingestion", tags=["ingestion"]
+)
 
 
 @app.get("/api/health")

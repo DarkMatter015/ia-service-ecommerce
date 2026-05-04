@@ -1,9 +1,11 @@
-from typing import Generic, TypeVar, Type, List, Optional, Any
+from typing import Any, Generic, List, Optional, Type, TypeVar
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+
 from app.core.database import Base
 
-ModelType = TypeVar("ModelType", bound=Base)
+ModelType = TypeVar("ModelType", bound=Base)  # type: ignore
 
 
 class BaseRepository(Generic[ModelType]):

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 
-from sqlalchemy import select, func, text, cast, Numeric, Text
+from sqlalchemy import Numeric, Text, cast, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product_model import ProductEmbedding

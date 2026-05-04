@@ -1,12 +1,13 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.factory import get_embeddings
 from app.api.deps import get_db
 from app.models.product_model import ProductEmbedding
 from app.repositories.product_repository import ProductRepository
-from app.ai.factory import get_embeddings
 from app.schemas.product_schema import ProductMetadata
-import logging
 
 router = APIRouter()
 

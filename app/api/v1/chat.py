@@ -1,11 +1,14 @@
+import logging
 from typing import Optional
-from fastapi import APIRouter, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_db
 from app.schemas.chat_schema import ChatRequest, ChatResponse
 from app.services.agent_service import AgentService
-import logging
+from app.services.chat_service import ChatService
 
 router = APIRouter()
 
@@ -23,8 +26,10 @@ async def chat_endpoint(
     try:
         full_token = f"Bearer {token_auth.credentials}" if token_auth else None
         service = AgentService(db, user_token=full_token)
-        answer = await service.handle_request(request.message)
-        return ChatResponse(response=answer)
+        answer = await service.handle_request(request.message, request.session_id)
+        return ChatResponse(response=answer.response, session_id=answer.session_id)
+    except HTTPException:
+        raise
     except Exception:
         logger.error("🔥 ERRO CRÍTICO NO CHAT", exc_info=True)
 
@@ -35,4 +40,30 @@ async def chat_endpoint(
             "tente novamente em alguns minutos enquanto eu afino as cordas!"
         )
 
-        return ChatResponse(response=fallback_message)
+        return HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=fallback_message
+        )
+
+
+@router.delete("/session/{session_id}")
+async def chat_endpoint_delete(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+    token_auth: HTTPAuthorizationCredentials = Depends(security),
+):
+    try:
+        full_token = f"Bearer {token_auth.credentials}" if token_auth else None
+        if not full_token:
+            return ChatResponse(response="Token não fornecido!")
+
+        service = ChatService(db)
+        await service.clear_session(session_id)
+        return ChatResponse(response="Sessão limpa com sucesso!")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.error("🔥 ERRO CRÍTICO AO LIMPAR SESSÃO", exc_info=True)
+        return HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao limpar sessão!",
+        )
